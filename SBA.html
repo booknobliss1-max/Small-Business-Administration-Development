@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>QuickBooks Grant Reporting Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Minimal styling, no external deps -->
+  <style>
+    :root {
+      --bg: #050816;
+      --card: #0f172a;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --success: #4ade80;
+      --warning: #facc15;
+      --border: #1f2937;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 45%, #000 100%);
+      color: var(--text);
+    }
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.04em;
+    }
+    header p {
+      margin: 0.25rem 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: linear-gradient(145deg, #020617, #020617 40%, #020617 60%, #020617);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 1rem 1.1rem;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.9);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0 0, rgba(56,189,248,0.18), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(129,140,248,0.16), transparent 55%);
+      opacity: 0.6;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .card h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #e5e7eb;
+    }
+    .card small {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .kpi-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .kpi {
+      flex: 1 1 120px;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.75rem;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+    }
+    .kpi-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 0.15rem;
+    }
+    .kpi-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .kpi-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      margin-top: 0.15rem;
+    }
+    .pill-success { background: rgba(34,197,94,0.12); color: var(--success); }
+    .pill-warning { background: rgba(250,204,21,0.12); color: var(--warning); }
+    .pill-danger  { background: rgba(248,113,113,0.12); color: var(--danger); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
+    th, td {
+      padding: 0.4rem 0.35rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(31,41,55,0.9);
+    }
+    th {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .chip {
+      display: inline-flex;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(31,41,55,0.9);
+      color: var(--muted);
+    }
+    .footer-note {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .grid { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+      header { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>QuickBooks Grant Reporting Dashboard</h1>
+        <p>For grant‑funded QuickBooks training programs · Program · Financial · Outcomes</p>
+      </div>
+      <div>
+        <div class="tag">
+          <span>Grant: WIOA / Digital Literacy</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Program Delivery -->
+      <section class="card" style="grid-column: span 6;">
+        <div class="card-inner">
+          <h2>Program Delivery</h2>
+          <small>Classes, attendance, hours of instruction, and participant mix.</small>
+
+          <div class="kpi-row" id="program-kpis"></div>
+
+          <table id="program-table">
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Sessions</th>
+                <th>Participants</th>
+                <th>Completion</th>
+                <th>Hours</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Financial Accountability -->
+      <section class="card" style="grid-column: span 6;">
+        <div class="card-inner">
+          <h2>Financial Accountability</h2>
+          <small>Budget vs actual by grant, cost per participant, remaining balance.</small>
+
+          <div class="kpi-row" id="finance-kpis"></div>
+
+          <table id="finance-table">
+            <thead>
+              <tr>
+                <th>Grant</th>
+                <th class="text-right">Budget</th>
+                <th class="text-right">Actual</th>
+                <th class="text-right">Remaining</th>
+                <th class="text-center">Spend %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Outcomes & Impact -->
+      <section class="card" style="grid-column: span 12;">
+        <div class="card-inner">
+          <h2>Outcomes & Impact</h2>
+          <small>Job placements, business launches, and participant satisfaction.</small>
+
+          <div class="kpi-row" id="outcome-kpis"></div>
+
+          <table id="outcome-table">
+            <thead>
+              <tr>
+                <th>Cohort</th>
+                <th class="text-right">Job Placements</th>
+                <th class="text-right">Business Launches</th>
+                <th class="text-right">Avg. Income Change</th>
+                <th class="text-center">Satisfaction</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer-note">
+      Data source: QuickBooks exports + attendance/outcome trackers · Replace mock data within code.
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // MOCK DATA (swap with real QB exports)
+    // -----------------------------
+    const programData = {
+      summary: {
+        totalClasses: 4,
+        totalParticipants: 62,
+        completionRate: 0.87,
+        totalHours: 96,
+        pctWomen: 0.61,
+        pctBIPOC: 0.74
+      },
+      classes: [
+        { name: "QuickBooks Basics", sessions: 6, participants: 20, completionRate: 0.9, hours: 24 },
+        { name: "QuickBooks for Nonprofits", sessions: 4, participants: 14, completionRate: 0.86, hours: 16 },
+        { name: "QuickBooks for Micro‑Business", sessions: 5, participants: 18, completionRate: 0.83, hours: 25 },
+        { name: "QuickBooks Certification Prep", sessions: 4, participants: 10, completionRate: 0.9, hours: 31 }
+      ]
+    };
+
+    const financeData = {
+      grants: [
+        { name: "Digital Literacy Grant", budget: 25000, actual: 18250 },
+        { name: "Workforce Innovation Grant", budget: 40000, actual: 29100 }
+      ],
+      participants: 62 // used for cost per participant
+    };
+
+    const outcomeData = {
+      summary: {
+        jobPlacements: 24,
+        businessLaunches: 9,
+        avgIncomeChange: 3200,
+        satisfaction: 0.93
+      },
+      cohorts: [
+        { name: "Spring 2025", jobs: 11, launches: 4, incomeChange: 2800, satisfaction: 0.9 },
+        { name: "Summer 2025", jobs: 13, launches: 5, incomeChange: 3550, satisfaction: 0.95 }
+      ]
+    };
+
+    // -----------------------------
+    // HELPERS
+    // -----------------------------
+    const fmtCurrency = v =>
+      "$" + v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+
+    const fmtPct = v =>
+      (v * 100).toLocaleString("en-US", { maximumFractionDigits: 1 }) + "%";
+
+    // -----------------------------
+    // PROGRAM DELIVERY RENDER
+    // -----------------------------
+    function renderProgram() {
+      const kpiWrap = document.getElementById("program-kpis");
+      const tbody = document.querySelector("#program-table tbody");
+      const s = programData.summary;
+
+      kpiWrap.innerHTML = `
+        <div class="kpi">
+          <div class="kpi-label">Total Classes</div>
+          <div class="kpi-value">${s.totalClasses}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Participants</div>
+          <div class="kpi-value">${s.totalParticipants}</div>
+          <div class="kpi-pill pill-success">${fmtPct(s.completionRate)} completion</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Hours of Instruction</div>
+          <div class="kpi-value">${s.totalHours}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Equity Mix</div>
+          <div class="kpi-value">${fmtPct(s.pctWomen)} women</div>
+          <div class="kpi-pill pill-warning">${fmtPct(s.pctBIPOC)} BIPOC</div>
+        </div>
+      `;
+
+      tbody.innerHTML = programData.classes.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td>${c.sessions}</td>
+          <td>${c.participants}</td>
+          <td>${fmtPct(c.completionRate)}</td>
+          <td>${c.hours}</td>
+        </tr>
+      `).join("");
+    }
+
+    // -----------------------------
+    // FINANCIAL RENDER
+    // -----------------------------
+    function renderFinance() {
+      const kpiWrap = document.getElementById("finance-kpis");
+      const tbody = document.querySelector("#finance-table tbody");
+
+      let totalBudget = 0;
+      let totalActual = 0;
+      financeData.grants.forEach(g => {
+        totalBudget += g.budget;
+        totalActual += g.actual;
+      });
+      const remaining = totalBudget - totalActual;
+      const spendRatio = totalActual / totalBudget;
+      const costPerParticipant = totalActual / financeData.participants;
+
+      const spendClass =
+        spendRatio < 0.4 ? "pill-warning" :
+        spendRatio > 0.9 ? "pill-danger" : "pill-success";
+
+      kpiWrap.innerHTML = `
+        <div class="kpi">
+          <div class="kpi-label">Total Budget</div>
+          <div class="kpi-value">${fmtCurrency(totalBudget)}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Actual</div>
+          <div class="kpi-value">${fmtCurrency(totalActual)}</div>
+          <div class="kpi-pill ${spendClass}">${fmtPct(spendRatio)} of budget</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Remaining</div>
+          <div class="kpi-value">${fmtCurrency(remaining)}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Cost per Participant</div>
+          <div class="kpi-value">${fmtCurrency(costPerParticipant)}</div>
+        </div>
+      `;
+
+      tbody.innerHTML = financeData.grants.map(g => {
+        const rem = g.budget - g.actual;
+        const ratio = g.actual / g.budget;
+        const cls =
+          ratio < 0.4 ? "chip" :
+          ratio > 0.9 ? "chip" : "chip";
+        const label =
+          ratio < 0.4 ? "Under‑spend risk" :
+          ratio > 0.9 ? "Over‑spend risk" : "On track";
+
+        return `
+          <tr>
+            <td>${g.name}</td>
+            <td class="text-right">${fmtCurrency(g.budget)}</td>
+            <td class="text-right">${fmtCurrency(g.actual)}</td>
+            <td class="text-right">${fmtCurrency(rem)}</td>
+            <td class="text-center">
+              <span class="${cls}">${fmtPct(ratio)} · ${label}</span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // -----------------------------
+    // OUTCOMES RENDER
+    // -----------------------------
+    function renderOutcomes() {
+      const kpiWrap = document.getElementById("outcome-kpis");
+      const tbody = document.querySelector("#outcome-table tbody");
+      const s = outcomeData.summary;
+
+      const satClass =
+        s.satisfaction >= 0.9 ? "pill-success" :
+        s.satisfaction >= 0.8 ? "pill-warning" : "pill-danger";
+
+      kpiWrap.innerHTML = `
+        <div class="kpi">
+          <div class="kpi-label">Job Placements</div>
+          <div class="kpi-value">${s.jobPlacements}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Business Launches</div>
+          <div class="kpi-value">${s.businessLaunches}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Avg. Income Change</div>
+          <div class="kpi-value">${fmtCurrency(s.avgIncomeChange)}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Participant Satisfaction</div>
+          <div class="kpi-value">${fmtPct(s.satisfaction)}</div>
+          <div class="kpi-pill ${satClass}">Post‑training surveys</div>
+        </div>
+      `;
+
+      tbody.innerHTML = outcomeData.cohorts.map(c => `
+        <tr>
+          <td>${c.name}</td>
+          <td class="text-right">${c.jobs}</td>
+          <td class="text-right">${c.launches}</td>
+          <td class="text-right">${fmtCurrency(c.incomeChange)}</td>
+          <td class="text-center">${fmtPct(c.satisfaction)}</td>
+        </tr>
+      `).join("");
+    }
+
+    // -----------------------------
+    // INIT
+    // -----------------------------
+    renderProgram();
+    renderFinance();
+    renderOutcomes();
+  </script>
+</body>
+</html>
